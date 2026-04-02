@@ -84,6 +84,8 @@
   .pdf-viewer-stage {
     min-height: 100%;
     min-width: 100%;
+    width: max-content;
+    height: max-content;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -91,7 +93,6 @@
   }
 
   .pdf-viewer-stage-zoomed {
-    width: max-content;
     align-items: flex-start;
     justify-content: flex-start;
   }
