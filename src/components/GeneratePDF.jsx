@@ -131,10 +131,20 @@ const PdfPreview = ({ pdfBlob, zoom }) => {
           {renderError}
         </div>
       )}
-      <div
-        ref={containerRef}
-        className={`transition-opacity duration-200 ${loading ? "opacity-0" : "opacity-100"}`}
-      />
+      <div className="relative min-h-full flex items-center justify-center">
+        {loading && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="flex items-center gap-2 text-sm text-nero-300">
+              <span className="h-3 w-3 rounded-full border-2 border-nero-500 border-t-transparent animate-spin" />
+              Loading preview...
+            </div>
+          </div>
+        )}
+        <div
+          ref={containerRef}
+          className={`w-full transition-opacity duration-200 ${loading ? "opacity-0" : "opacity-100"}`}
+        />
+      </div>
     </div>
   );
 };
@@ -477,14 +487,29 @@ export default function GeneratePDF({ resetSignal }) {
                     ? "bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95"
                     : "bg-nero-700 text-nero-500 cursor-not-allowed"
                     }`}
+                  aria-label="Download"
                 >
-                  Download
+                  <span className="hidden sm:inline">Download</span>
+                  <span className="inline sm:hidden">
+                    <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
+                      <path
+                        d="M12 3v10m0 0l4-4m-4 4l-4-4M5 20h14"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </span>
                 </button>
                 <button
                   onClick={() => setIsPreviewOpen(false)}
                   className="h-8 px-3 rounded-md text-sm font-medium bg-nero-700 text-nero-200 hover:bg-nero-600 active:scale-95"
+                  aria-label="Close preview"
                 >
-                  Close
+                  <span className="hidden sm:inline">Close</span>
+                  <span className="inline sm:hidden text-lg leading-none">×</span>
                 </button>
               </div>
             </div>
