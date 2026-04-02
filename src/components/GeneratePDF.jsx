@@ -10,57 +10,42 @@ import Toast from "../utils/Toast";
 
 GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
-const PdfPreview = ({ pdfBlob, zoom, onZoomChange }) => {
+const PdfPreview = ({ pdfBlob, zoom }) => {
   const containerRef = useRef(null);
   const [loading, setLoading] = useState(false);
   const [renderError, setRenderError] = useState("");
-  const pinchStateRef = useRef({
-    active: false,
-    startDistance: 0,
-    startZoom: 1,
-  });
-
+  const [containerWidth, setContainerWidth] = useState(0);
   const clampZoom = (value) => Math.max(0.5, Math.min(2.5, value));
 
-  const handleWheel = (event) => {
-    if (!event.ctrlKey && !event.metaKey) return;
-    event.preventDefault();
-    const direction = event.deltaY > 0 ? -1 : 1;
-    const next = clampZoom(zoom + direction * 0.1);
-    onZoomChange(next);
+  const applyZoomStyles = (value) => {
+    const next = clampZoom(value);
+    const container = containerRef.current;
+    if (!container) return;
+    const canvases = container.querySelectorAll("canvas[data-base-width]");
+    canvases.forEach((canvas) => {
+      const baseWidth = Number(canvas.dataset.baseWidth || 0);
+      const baseHeight = Number(canvas.dataset.baseHeight || 0);
+      if (!baseWidth || !baseHeight) return;
+      canvas.style.width = `${baseWidth * next}px`;
+      canvas.style.height = `${baseHeight * next}px`;
+    });
   };
 
-  const getTouchDistance = (touches) => {
-    const [a, b] = touches;
-    const dx = a.clientX - b.clientX;
-    const dy = a.clientY - b.clientY;
-    return Math.hypot(dx, dy);
-  };
-
-  const handleTouchStart = (event) => {
-    if (event.touches.length !== 2) return;
-    const distance = getTouchDistance(event.touches);
-    pinchStateRef.current = {
-      active: true,
-      startDistance: distance,
-      startZoom: zoom,
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return undefined;
+    const updateWidth = () => {
+      setContainerWidth(container.clientWidth);
     };
-  };
+    updateWidth();
+    const observer = new ResizeObserver(updateWidth);
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
 
-  const handleTouchMove = (event) => {
-    if (!pinchStateRef.current.active || event.touches.length !== 2) return;
-    event.preventDefault();
-    const distance = getTouchDistance(event.touches);
-    const ratio = distance / (pinchStateRef.current.startDistance || 1);
-    const next = clampZoom(pinchStateRef.current.startZoom * ratio);
-    onZoomChange(next);
-  };
-
-  const handleTouchEnd = () => {
-    if (pinchStateRef.current.active) {
-      pinchStateRef.current.active = false;
-    }
-  };
+  useEffect(() => {
+    applyZoomStyles(zoom);
+  }, [zoom]);
 
   useEffect(() => {
     let cancelled = false;
@@ -68,14 +53,14 @@ const PdfPreview = ({ pdfBlob, zoom, onZoomChange }) => {
     let url = "";
 
     const render = async () => {
-      if (!pdfBlob || !containerRef.current) return;
+      if (!pdfBlob || !containerRef.current || !containerWidth) return;
 
       setLoading(true);
       setRenderError("");
 
       url = URL.createObjectURL(pdfBlob);
       const container = containerRef.current;
-      container.innerHTML = "";
+      const fragment = document.createDocumentFragment();
 
       try {
         loadingTask = getDocument({ url });
@@ -87,10 +72,9 @@ const PdfPreview = ({ pdfBlob, zoom, onZoomChange }) => {
 
           const baseViewport = page.getViewport({ scale: 1 });
           const padding = 16;
-          const containerWidth = Math.max(container.clientWidth - padding, 320);
-          const fitScale = containerWidth / baseViewport.width;
-          const scale = fitScale * zoom;
-          const viewport = page.getViewport({ scale });
+          const fitWidth = Math.max(container.clientWidth - padding, 320);
+          const fitScale = fitWidth / baseViewport.width;
+          const viewport = page.getViewport({ scale: fitScale });
 
           const canvas = document.createElement("canvas");
           const context = canvas.getContext("2d");
@@ -98,6 +82,8 @@ const PdfPreview = ({ pdfBlob, zoom, onZoomChange }) => {
 
           canvas.width = viewport.width * pixelRatio;
           canvas.height = viewport.height * pixelRatio;
+          canvas.dataset.baseWidth = `${viewport.width}`;
+          canvas.dataset.baseHeight = `${viewport.height}`;
           canvas.style.width = `${viewport.width}px`;
           canvas.style.height = `${viewport.height}px`;
           canvas.className = "bg-white rounded-md shadow-sm border border-nero-700";
@@ -109,17 +95,21 @@ const PdfPreview = ({ pdfBlob, zoom, onZoomChange }) => {
           const pageWrapper = document.createElement("div");
           pageWrapper.className = "w-full flex justify-center mb-4 last:mb-0";
           pageWrapper.appendChild(canvas);
-          container.appendChild(pageWrapper);
 
           await page.render({ canvasContext: context, viewport }).promise;
+          fragment.appendChild(pageWrapper);
+        }
+        if (!cancelled) {
+          container.replaceChildren(fragment);
+          applyZoomStyles(zoom);
+          setLoading(false);
         }
       } catch (err) {
         if (!cancelled) {
           console.error(err);
           setRenderError("Preview could not be rendered.");
+          setLoading(false);
         }
-      } finally {
-        if (!cancelled) setLoading(false);
       }
     };
 
@@ -130,28 +120,21 @@ const PdfPreview = ({ pdfBlob, zoom, onZoomChange }) => {
       if (loadingTask) loadingTask.destroy();
       if (url) URL.revokeObjectURL(url);
     };
-  }, [pdfBlob, zoom]);
+  }, [pdfBlob, containerWidth]);
 
   return (
     <div
       className="h-full w-full overflow-y-auto preview-scrollbar rounded-md border border-nero-600 bg-nero-900 p-3"
-      onWheel={handleWheel}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-      onTouchCancel={handleTouchEnd}
     >
-      {loading && (
-        <div className="w-full flex items-center justify-center text-sm text-nero-400">
-          Rendering preview...
-        </div>
-      )}
       {renderError && (
         <div className="w-full text-xs text-red-200 bg-nero-750 border border-red-300 rounded-md px-3 py-2">
           {renderError}
         </div>
       )}
-      <div ref={containerRef} />
+      <div
+        ref={containerRef}
+        className={`transition-opacity duration-200 ${loading ? "opacity-0" : "opacity-100"}`}
+      />
     </div>
   );
 };
@@ -511,7 +494,6 @@ export default function GeneratePDF({ resetSignal }) {
                 <PdfPreview
                   pdfBlob={pdfBlob}
                   zoom={previewZoom}
-                  onZoomChange={setPreviewZoom}
                 />
               </div>
             </div>
