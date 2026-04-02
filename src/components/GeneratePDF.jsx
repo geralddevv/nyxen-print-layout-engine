@@ -10,10 +10,57 @@ import Toast from "../utils/Toast";
 
 GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
-const PdfPreview = ({ pdfBlob }) => {
+const PdfPreview = ({ pdfBlob, zoom, onZoomChange }) => {
   const containerRef = useRef(null);
   const [loading, setLoading] = useState(false);
   const [renderError, setRenderError] = useState("");
+  const pinchStateRef = useRef({
+    active: false,
+    startDistance: 0,
+    startZoom: 1,
+  });
+
+  const clampZoom = (value) => Math.max(0.5, Math.min(2.5, value));
+
+  const handleWheel = (event) => {
+    if (!event.ctrlKey && !event.metaKey) return;
+    event.preventDefault();
+    const direction = event.deltaY > 0 ? -1 : 1;
+    const next = clampZoom(zoom + direction * 0.1);
+    onZoomChange(next);
+  };
+
+  const getTouchDistance = (touches) => {
+    const [a, b] = touches;
+    const dx = a.clientX - b.clientX;
+    const dy = a.clientY - b.clientY;
+    return Math.hypot(dx, dy);
+  };
+
+  const handleTouchStart = (event) => {
+    if (event.touches.length !== 2) return;
+    const distance = getTouchDistance(event.touches);
+    pinchStateRef.current = {
+      active: true,
+      startDistance: distance,
+      startZoom: zoom,
+    };
+  };
+
+  const handleTouchMove = (event) => {
+    if (!pinchStateRef.current.active || event.touches.length !== 2) return;
+    event.preventDefault();
+    const distance = getTouchDistance(event.touches);
+    const ratio = distance / (pinchStateRef.current.startDistance || 1);
+    const next = clampZoom(pinchStateRef.current.startZoom * ratio);
+    onZoomChange(next);
+  };
+
+  const handleTouchEnd = () => {
+    if (pinchStateRef.current.active) {
+      pinchStateRef.current.active = false;
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -41,7 +88,8 @@ const PdfPreview = ({ pdfBlob }) => {
           const baseViewport = page.getViewport({ scale: 1 });
           const padding = 16;
           const containerWidth = Math.max(container.clientWidth - padding, 320);
-          const scale = containerWidth / baseViewport.width;
+          const fitScale = containerWidth / baseViewport.width;
+          const scale = fitScale * zoom;
           const viewport = page.getViewport({ scale });
 
           const canvas = document.createElement("canvas");
@@ -82,10 +130,17 @@ const PdfPreview = ({ pdfBlob }) => {
       if (loadingTask) loadingTask.destroy();
       if (url) URL.revokeObjectURL(url);
     };
-  }, [pdfBlob]);
+  }, [pdfBlob, zoom]);
 
   return (
-    <div className="h-full w-full overflow-y-auto preview-scrollbar rounded-md border border-nero-600 bg-nero-900 p-3">
+    <div
+      className="h-full w-full overflow-y-auto preview-scrollbar rounded-md border border-nero-600 bg-nero-900 p-3"
+      onWheel={handleWheel}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchEnd}
+    >
       {loading && (
         <div className="w-full flex items-center justify-center text-sm text-nero-400">
           Rendering preview...
@@ -196,6 +251,7 @@ export default function GeneratePDF({ resetSignal }) {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
+  const [previewZoom, setPreviewZoom] = useState(1);
 
   const grid = useMemo(() => buildGrid(values), [values]);
 
@@ -219,6 +275,7 @@ export default function GeneratePDF({ resetSignal }) {
     setStatusMsg("");
     setError("");
     setIsPreviewOpen(false);
+    setPreviewZoom(1);
     setShowToast(false);
   }, [
     resetSignal,
@@ -345,6 +402,15 @@ export default function GeneratePDF({ resetSignal }) {
     setIsPreviewOpen(true);
   };
 
+  useEffect(() => {
+    if (!isPreviewOpen) return undefined;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [isPreviewOpen]);
+
   const detailLine = grid.ready
     ? `${grid.columns} columns x ${grid.rows} rows (${grid.count} labels)`
     : grid.message;
@@ -402,6 +468,25 @@ export default function GeneratePDF({ resetSignal }) {
             <div className="flex items-center justify-between px-4 py-3 border-b border-nero-700 text-nero-300">
               <span className="text-sm font-semibold">Preview</span>
               <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 rounded-md bg-nero-700 p-0.5">
+                  <button
+                    onClick={() => setPreviewZoom((z) => Math.max(0.5, +(z - 0.1).toFixed(2)))}
+                    className="h-7 w-7 rounded-md text-nero-200 hover:bg-nero-600 active:scale-95"
+                    aria-label="Zoom out"
+                  >
+                    –
+                  </button>
+                  <span className="px-2 text-xs text-nero-300 min-w-[44px] text-center">
+                    {Math.round(previewZoom * 100)}%
+                  </span>
+                  <button
+                    onClick={() => setPreviewZoom((z) => Math.min(2.5, +(z + 0.1).toFixed(2)))}
+                    className="h-7 w-7 rounded-md text-nero-200 hover:bg-nero-600 active:scale-95"
+                    aria-label="Zoom in"
+                  >
+                    +
+                  </button>
+                </div>
                 <button
                   onClick={handleDownload}
                   disabled={!pdfBlob}
@@ -423,7 +508,11 @@ export default function GeneratePDF({ resetSignal }) {
 
             <div className="flex-1 min-h-0 bg-nero-750 p-2 flex items-center justify-center">
               <div className="w-full h-full max-w-[980px]">
-                <PdfPreview pdfBlob={pdfBlob} />
+                <PdfPreview
+                  pdfBlob={pdfBlob}
+                  zoom={previewZoom}
+                  onZoomChange={setPreviewZoom}
+                />
               </div>
             </div>
 
