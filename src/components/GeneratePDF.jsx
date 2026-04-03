@@ -1,154 +1,12 @@
 ﻿import { useEffect, useMemo, useRef, useState } from "react";
 import { Document, Page, View, pdf } from "@react-pdf/renderer";
-import { GlobalWorkerOptions, getDocument } from "pdfjs-dist";
-import { EventBus, PDFLinkService, PDFViewer } from "pdfjs-dist/web/pdf_viewer";
-import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min?url";
-import "pdfjs-dist/web/pdf_viewer.css";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import EmbedPDF from "./EmbedPDF";
 import { useLayout } from "../context/LayoutProvider";
 import { computeAutoMargins } from "../utils/computeAutoMargins";
 import TokenTemplate from "../utils/TokenTemplate";
 import { addTrimMarksToPDF } from "../utils/TrimMarksPDFLib";
 import Toast from "../utils/Toast";
-
-GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
-
-const clampZoom = (value) => Math.max(0.5, Math.min(2.5, value));
-
-const PdfPreview = ({ pdfBlob, zoom }) => {
-  const containerRef = useRef(null);
-  const viewerRef = useRef(null);
-  const pdfViewerRef = useRef(null);
-  const linkServiceRef = useRef(null);
-  const baseScaleRef = useRef(1);
-  const [loading, setLoading] = useState(false);
-  const [renderError, setRenderError] = useState("");
-
-  useEffect(() => {
-    if (!containerRef.current || !viewerRef.current) return undefined;
-    const eventBus = new EventBus();
-    const linkService = new PDFLinkService({ eventBus });
-    const pdfViewer = new PDFViewer({
-      container: containerRef.current,
-      viewer: viewerRef.current,
-      eventBus,
-      linkService,
-      textLayerMode: 0,
-      removePageBorders: true,
-    });
-
-    linkService.setViewer(pdfViewer);
-    pdfViewerRef.current = pdfViewer;
-    linkServiceRef.current = linkService;
-
-    const handlePagesInit = () => {
-      if (!pdfViewerRef.current) return;
-      pdfViewerRef.current.currentScaleValue = "page-width";
-      baseScaleRef.current = pdfViewerRef.current.currentScale || 1;
-      pdfViewerRef.current.currentScale =
-        baseScaleRef.current * clampZoom(zoom);
-    };
-
-    eventBus.on("pagesinit", handlePagesInit);
-
-    return () => {
-      eventBus.off("pagesinit", handlePagesInit);
-      pdfViewerRef.current?.setDocument(null);
-      linkServiceRef.current?.setDocument(null);
-      pdfViewerRef.current = null;
-      linkServiceRef.current = null;
-    };
-  }, []);
-
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return undefined;
-    const observer = new ResizeObserver(() => {
-      const pdfViewer = pdfViewerRef.current;
-      if (!pdfViewer || !pdfViewer.pdfDocument) return;
-      pdfViewer.currentScaleValue = "page-width";
-      baseScaleRef.current = pdfViewer.currentScale || 1;
-      pdfViewer.currentScale = baseScaleRef.current * clampZoom(zoom);
-    });
-    observer.observe(container);
-    return () => observer.disconnect();
-  }, [zoom]);
-
-  useEffect(() => {
-    let cancelled = false;
-    let loadingTask = null;
-    let url = "";
-
-    const load = async () => {
-      if (!pdfBlob || !pdfViewerRef.current) return;
-
-      setLoading(true);
-      setRenderError("");
-
-      url = URL.createObjectURL(pdfBlob);
-
-      try {
-        loadingTask = getDocument({ url });
-        const pdfDoc = await loadingTask.promise;
-        if (cancelled) return;
-        linkServiceRef.current?.setDocument(pdfDoc, null);
-        pdfViewerRef.current?.setDocument(pdfDoc);
-        setLoading(false);
-      } catch (err) {
-        if (!cancelled) {
-          console.error(err);
-          setRenderError("Preview could not be rendered.");
-          setLoading(false);
-        }
-      }
-    };
-
-    load();
-
-    return () => {
-      cancelled = true;
-      if (loadingTask) loadingTask.destroy();
-      if (url) URL.revokeObjectURL(url);
-      pdfViewerRef.current?.setDocument(null);
-      linkServiceRef.current?.setDocument(null);
-    };
-  }, [pdfBlob]);
-
-  useEffect(() => {
-    const pdfViewer = pdfViewerRef.current;
-    if (!pdfViewer || !pdfViewer.pdfDocument) return;
-    pdfViewer.currentScale = baseScaleRef.current * clampZoom(zoom);
-  }, [zoom]);
-
-  const showPlaceholder = !pdfBlob && !loading && !renderError;
-
-  return (
-    <div className="h-full w-full rounded-md border border-nero-600 bg-nero-900 p-3">
-      {renderError && (
-        <div className="w-full text-xs text-red-200 bg-nero-750 border border-red-300 rounded-md px-3 py-2">
-          {renderError}
-        </div>
-      )}
-      <div className="relative h-full">
-        {(loading || showPlaceholder) && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="flex items-center gap-2 text-sm text-nero-300">
-              <span className="h-3 w-3 rounded-full border-2 border-nero-500 border-t-transparent animate-spin" />
-              {showPlaceholder ? "Waiting for preview..." : "Loading preview..."}
-            </div>
-          </div>
-        )}
-        <div
-          ref={containerRef}
-          className={`absolute inset-0 overflow-auto preview-scrollbar transition-opacity duration-200 ${loading ? "opacity-0" : "opacity-100"}`}
-        >
-          <div className={`pdf-viewer-stage ${zoom > 1 ? "pdf-viewer-stage-zoomed" : ""}`}>
-            <div ref={viewerRef} className="pdfViewer pdf-viewer-center" />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 const buildGrid = (values) => {
   const {
@@ -237,6 +95,7 @@ const buildGrid = (values) => {
 export default function GeneratePDF({ resetSignal }) {
   const layout = useLayout();
   const { values } = layout;
+  const reduceMotion = useReducedMotion();
 
   const [pdfBlob, setPdfBlob] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -245,7 +104,8 @@ export default function GeneratePDF({ resetSignal }) {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
-  const [previewZoom, setPreviewZoom] = useState(1);
+  const [previewZoomPct, setPreviewZoomPct] = useState(100);
+  const previewViewerRef = useRef(null);
 
   const grid = useMemo(() => buildGrid(values), [values]);
 
@@ -269,8 +129,8 @@ export default function GeneratePDF({ resetSignal }) {
     setStatusMsg("");
     setError("");
     setIsPreviewOpen(false);
-    setPreviewZoom(1);
     setShowToast(false);
+    setPreviewZoomPct(100);
   }, [
     resetSignal,
     values.paperWidthPt,
@@ -400,8 +260,14 @@ export default function GeneratePDF({ resetSignal }) {
     if (!isPreviewOpen) return undefined;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+
+    const handle = setTimeout(() => {
+      const pct = previewViewerRef.current?.getZoomPercent?.();
+      if (typeof pct === "number") setPreviewZoomPct(pct);
+    }, 0);
     return () => {
       document.body.style.overflow = prev;
+      clearTimeout(handle);
     };
   }, [isPreviewOpen]);
 
@@ -450,37 +316,62 @@ export default function GeneratePDF({ resetSignal }) {
         onClose={() => setShowToast(false)}
       />
 
-      {isPreviewOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-nero-900/80 p-4"
-          onClick={() => setIsPreviewOpen(false)}
-        >
-          <div
-            className="w-full max-w-5xl h-[80vh] sm:h-[85vh] bg-nero-800 border border-nero-700 rounded-lg shadow-xl flex flex-col overflow-hidden"
-            onClick={(event) => event.stopPropagation()}
+      <AnimatePresence>
+        {isPreviewOpen && (
+          <motion.div
+            className="fixed inset-0 z-50 bg-nero-900/85"
+            onClick={() => setIsPreviewOpen(false)}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: reduceMotion ? 0 : 0.16, ease: "easeOut" }}
           >
-            <div className="flex items-center justify-between px-4 py-3 border-b border-nero-700 text-nero-300">
-              <span className="text-sm font-semibold">Preview</span>
-              <div className="flex items-center gap-2">
+            <motion.div
+              className="w-full h-full bg-nero-800 border border-nero-700 shadow-xl flex flex-col overflow-hidden"
+              onClick={(event) => event.stopPropagation()}
+              initial={{ opacity: 0, scale: 0.985, y: 6 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.985, y: 6 }}
+              transition={{ duration: reduceMotion ? 0 : 0.18, ease: "easeOut" }}
+            >
+            <div className="grid grid-cols-3 items-center px-4 py-3 border-b border-nero-700 text-nero-300">
+              <span className="justify-self-start text-sm font-semibold">Preview</span>
+
+              <div className="justify-self-center">
                 <div className="flex items-center gap-1 rounded-md bg-nero-700 p-0.5">
                   <button
-                    onClick={() => setPreviewZoom((z) => clampZoom(+(z - 0.1).toFixed(2)))}
-                    className="h-7 w-7 rounded-md text-nero-200 hover:bg-nero-600 active:scale-95"
+                    onClick={() => {
+                      previewViewerRef.current?.zoomOut?.();
+                      const pct = previewViewerRef.current?.getZoomPercent?.();
+                      if (typeof pct === "number") setPreviewZoomPct(pct);
+                    }}
+                    disabled={!pdfBlob}
+                    className={`h-7 w-7 rounded-md text-nero-200 active:scale-95 ${pdfBlob ? "hover:bg-nero-600" : "opacity-50 cursor-not-allowed"
+                      }`}
                     aria-label="Zoom out"
                   >
                     –
                   </button>
-                  <span className="px-2 text-xs text-nero-300 min-w-11 text-center">
-                    {Math.round(previewZoom * 100)}%
+                  <span className="px-2 text-xs text-nero-300 min-w-11 text-center tabular-nums">
+                    {previewZoomPct}%
                   </span>
                   <button
-                    onClick={() => setPreviewZoom((z) => clampZoom(+(z + 0.1).toFixed(2)))}
-                    className="h-7 w-7 rounded-md text-nero-200 hover:bg-nero-600 active:scale-95"
+                    onClick={() => {
+                      previewViewerRef.current?.zoomIn?.();
+                      const pct = previewViewerRef.current?.getZoomPercent?.();
+                      if (typeof pct === "number") setPreviewZoomPct(pct);
+                    }}
+                    disabled={!pdfBlob}
+                    className={`h-7 w-7 rounded-md text-nero-200 active:scale-95 ${pdfBlob ? "hover:bg-nero-600" : "opacity-50 cursor-not-allowed"
+                      }`}
                     aria-label="Zoom in"
                   >
                     +
                   </button>
                 </div>
+              </div>
+
+              <div className="justify-self-end flex items-center gap-2">
                 <button
                   onClick={handleDownload}
                   disabled={!pdfBlob}
@@ -515,15 +406,18 @@ export default function GeneratePDF({ resetSignal }) {
               </div>
             </div>
 
-            <div className="flex-1 min-h-0 bg-nero-750 p-2 flex items-center justify-center">
-              <div className="w-full h-full max-w-[980px]">
-                <PdfPreview pdfBlob={pdfBlob} zoom={previewZoom} />
-              </div>
+            <div className="flex-1 min-h-0 bg-nero-750">
+              <EmbedPDF
+                ref={previewViewerRef}
+                pdfBlob={pdfBlob}
+                className="h-full w-full border-0 rounded-none"
+              />
             </div>
 
-          </div>
-        </div>
-      )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
