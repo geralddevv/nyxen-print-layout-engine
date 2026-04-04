@@ -311,26 +311,6 @@ export default function GeneratePDF({ resetSignal }) {
     return () => window.removeEventListener("hashchange", syncFromHash);
   }, [isMobilePreview]);
 
-  useEffect(() => {
-    if (!isPreviewOpen) return undefined;
-    const prevBodyOverflow = document.body.style.overflow;
-    const prevHtmlOverflow = document.documentElement.style.overflow;
-    const prevBodyOverscroll = document.body.style.overscrollBehavior;
-    const prevHtmlOverscroll = document.documentElement.style.overscrollBehavior;
-
-    document.body.style.overflow = "hidden";
-    document.documentElement.style.overflow = "hidden";
-    document.body.style.overscrollBehavior = "none";
-    document.documentElement.style.overscrollBehavior = "none";
-
-    return () => {
-      document.body.style.overflow = prevBodyOverflow;
-      document.documentElement.style.overflow = prevHtmlOverflow;
-      document.body.style.overscrollBehavior = prevBodyOverscroll;
-      document.documentElement.style.overscrollBehavior = prevHtmlOverscroll;
-    };
-  }, [isPreviewOpen]);
-
   const detailLine = grid.ready
     ? `${grid.columns} columns x ${grid.rows} rows (${grid.count} labels)`
     : grid.message;
@@ -379,7 +359,7 @@ export default function GeneratePDF({ resetSignal }) {
       <AnimatePresence>
         {isPreviewOpen && (
           <motion.div
-            className={`fixed inset-0 z-50 h-[100dvh] overflow-hidden ${isMobilePreview ? "bg-nero-900" : "bg-nero-900/85"}`}
+            className={`fixed inset-0 z-50 h-[100dvh] overflow-hidden overscroll-none ${isMobilePreview ? "bg-nero-900" : "bg-nero-900/85"}`}
             onClick={isMobilePreview ? undefined : closePreview}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
