@@ -13,9 +13,6 @@ function RefreshBtn() {
         fontSize="small"
         className="text-nero-400 group-hover:text-nero-300 transition-colors duration-200"
       />
-      {/* <span className="text-sm text-nero-400 font-medium pl-1 group-hover:text-nero-300 transition-colors duration-200">
-        Reset
-      </span> */}
     </button>
   );
 }

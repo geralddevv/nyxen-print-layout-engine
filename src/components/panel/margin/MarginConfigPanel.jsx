@@ -1,5 +1,3 @@
-// MarginConfigPanel.jsx
-import React from "react";
 import MarginInput from "./MarginInput";
 import { useLayout } from "../../../context/LayoutProvider";
 import { computeAutoMargins } from "../../../utils/computeAutoMargins";

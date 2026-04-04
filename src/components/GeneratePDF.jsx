@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Document, Page, View, pdf } from "@react-pdf/renderer";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
@@ -6,95 +6,13 @@ import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import EmbedPDF from "./EmbedPDF";
 import { useLayout } from "../context/LayoutProvider";
 import { computeAutoMargins } from "../utils/computeAutoMargins";
+import { buildGrid } from "../utils/grid";
+import { ptToIn, ptToMm } from "../utils/unitConversion";
 import TokenTemplate from "../utils/TokenTemplate";
 import { addTrimMarksToPDF } from "../utils/TrimMarksPDFLib";
 import Toast from "../utils/Toast";
 
 const PREVIEW_HASH = "#pdf-preview";
-
-const buildGrid = (values) => {
-  const {
-    paperWidthPt,
-    paperHeightPt,
-    couponWidthPt,
-    couponHeightPt,
-    leftMargin,
-    rightMargin,
-    topMargin,
-    bottomMargin,
-    gapXPt,
-    gapYPt,
-  } = values;
-
-  const hasSizes =
-    paperWidthPt > 0 &&
-    paperHeightPt > 0 &&
-    couponWidthPt > 0 &&
-    couponHeightPt > 0;
-
-  if (!hasSizes) {
-    return {
-      ready: false,
-      message: "Set both page and label sizes to continue.",
-      columns: 0,
-      rows: 0,
-      count: 0,
-      gapX: 0,
-      gapY: 0,
-    };
-  }
-
-  const gapX = gapXPt || 0;
-  const gapY = gapYPt || 0;
-
-  const usableW = paperWidthPt - leftMargin - rightMargin;
-  const usableH = paperHeightPt - topMargin - bottomMargin;
-
-  if (usableW <= 0 || usableH <= 0) {
-    return {
-      ready: false,
-      message: "Margins are larger than the page area.",
-      columns: 0,
-      rows: 0,
-      count: 0,
-      gapX,
-      gapY,
-    };
-  }
-
-  const columns = Math.max(
-    0,
-    Math.floor((usableW + gapX) / (couponWidthPt + gapX))
-  );
-  const rows = Math.max(
-    0,
-    Math.floor((usableH + gapY) / (couponHeightPt + gapY))
-  );
-
-  const count = columns * rows;
-
-  if (!columns || !rows) {
-    return {
-      ready: false,
-      message: "Label size is too large to fit on the page.",
-      columns,
-      rows,
-      count,
-      gapX,
-      gapY,
-    };
-  }
-
-  return {
-    ready: true,
-    message: "",
-    columns,
-    rows,
-    count,
-    gapX,
-    gapY,
-  };
-};
 
 export default function GeneratePDF({ resetSignal }) {
   const layout = useLayout();
@@ -193,8 +111,8 @@ export default function GeneratePDF({ resetSignal }) {
 
     // Format the number to max 2 decimal places, removing trailing zeros
     const formatDim = (pt, unit) => {
-      const val = unit === "mm" ? pt / 2.8346456693 : pt / 72;
-      return parseFloat(val.toFixed(2));
+      const val = unit === "mm" ? ptToMm(pt) : ptToIn(pt);
+      return Number(val.toFixed(2));
     };
 
     const pW = formatDim(values.paperWidthPt, values.paperUnit);
@@ -374,37 +292,39 @@ export default function GeneratePDF({ resetSignal }) {
               exit={{ opacity: 0, scale: 0.985, y: 6 }}
               transition={{ duration: reduceMotion ? 0 : 0.18, ease: "easeOut" }}
             >
-            <div className="flex items-center justify-between px-4 py-3 border-b border-nero-700 text-nero-300">
-              <span className="text-sm font-semibold">Preview</span>
+              <div className="flex items-center justify-between px-4 py-3 border-b border-nero-700 text-nero-300">
+                <span className="text-sm font-semibold">Preview</span>
 
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handleDownload}
-                  disabled={!pdfBlob}
-                  className={`h-8 px-3 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${pdfBlob
-                    ? "bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95"
-                    : "bg-nero-700 text-nero-500 cursor-not-allowed"
-                    }`}
-                  aria-label="Download"
-                >
-                  <DownloadRoundedIcon sx={{ fontSize: 18 }} />
-                  <span>Download</span>
-                </button>
-                <button
-                  onClick={closePreview}
-                  className="h-8 px-3 rounded-md text-sm font-medium bg-nero-700 text-nero-200 hover:bg-nero-600 active:scale-95 flex items-center gap-2"
-                  aria-label="Close preview"
-                >
-                  <CloseRoundedIcon sx={{ fontSize: 18 }} />
-                  {!isMobilePreview && <span>Close</span>}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleDownload}
+                    disabled={!pdfBlob}
+                    className={`h-8 px-3 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${pdfBlob
+                      ? "bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95"
+                      : "bg-nero-700 text-nero-500 cursor-not-allowed"
+                      }`}
+                    aria-label="Download"
+                  >
+                    <DownloadRoundedIcon sx={{ fontSize: 18 }} />
+                    <span>Download</span>
+                  </button>
+                  <button
+                    onClick={closePreview}
+                    className="h-8 px-3 rounded-md text-sm font-medium bg-nero-700 text-nero-200 hover:bg-nero-600 active:scale-95 flex items-center gap-2"
+                    aria-label="Close preview"
+                  >
+                    <CloseRoundedIcon sx={{ fontSize: 18 }} />
+                    {!isMobilePreview && <span>Close</span>}
+                  </button>
+                </div>
               </div>
-            </div>
 
-            <div className="flex-1 min-h-0 bg-nero-750">
-              <EmbedPDF pdfBlob={pdfBlob} className="h-full w-full border-0 rounded-none" />
-            </div>
-
+              <div className="flex-1 min-h-0 bg-nero-750">
+                <EmbedPDF
+                  pdfBlob={pdfBlob}
+                  className="h-full w-full border-0 rounded-none"
+                />
+              </div>
             </motion.div>
           </motion.div>
         )}

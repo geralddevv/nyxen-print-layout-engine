@@ -1,14 +1,12 @@
-// PresetOption.jsx FIXED
 import { useLayout } from "../../context/LayoutProvider";
 import { useRefresh } from "../../context/RefreshContext";
 import PresetPortraitImg from "../../assets/preset-portrait-img.svg";
 import PresetLandscapeImg from "../../assets/preset-landscape-img.svg";
+import { mmToPt } from "../../utils/unitConversion";
 
 const PresetOption = ({ paperName, width, height, selected, onSelect }) => {
   const layout = useLayout();
   const { handleRefresh } = useRefresh();
-
-  const mmToPt = (mm) => mm * 2.8346456693;
 
   const applyPreset = () => {
     // UI knows preset is updating
@@ -46,7 +44,11 @@ const PresetOption = ({ paperName, width, height, selected, onSelect }) => {
         }
   `}
     >
-      <img src={previewImg} className="w-24 h-24 rounded-md" />
+      <img
+        src={previewImg}
+        alt={`${paperName} preview`}
+        className="w-24 h-24 rounded-md"
+      />
 
       <span className="flex flex-col justify-center items-center text-sm font-semibold">
         <h4 className="text-base group-hover:text-denim-400 transition-colors duration-150">

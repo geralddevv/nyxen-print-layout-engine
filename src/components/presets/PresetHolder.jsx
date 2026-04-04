@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import PresetOption from "./PresetOption";
 
@@ -35,7 +35,6 @@ const PresetHolder = () => {
         Presets
       </div>
 
-      {/* Tabs */}
       <div className="bg-nero-800 border-b-2 border-r-2 border-nero-900 minimal-scrollbar overflow-x-auto">
         <div
           className="flex items-center px-4 gap-3 sm:gap-4 md:gap-6 lg:gap-8 xl:gap-1 w-max mx-auto lg:mx-auto md:mx-0">
@@ -52,7 +51,6 @@ const PresetHolder = () => {
       </div>
 
 
-      {/* CONTENT */}
       <div className="minimal-scrollbar w-full h-[calc(100vh-100px)] overflow-auto flex flex-col relative">
         <AnimatePresence mode="wait">
           {currentTab === 0 && (

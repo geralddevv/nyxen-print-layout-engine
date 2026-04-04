@@ -1,12 +1,25 @@
-﻿# Chronos
-## Sheet Layout Planner
+# Chronos - Sheet Layout Planner
 
-Chronos is a simple sheet layout planner. You enter the page size, label size, and gap sizes, and the app draws the labels (coupons) inside the sheet.
+Chronos is a focused sheet layout planner for labels and coupons. Enter page size, label size, and gaps, and the app calculates the grid, previews the layout, and generates a PDF for print verification.
 
-## What it does
-- Calculates how many labels fit on a sheet based on the provided page, label, and gap sizes
-- Renders the label grid so you can visually confirm spacing and alignment
-- Lets you download a PDF to verify the label count and placement
+## Features
+- Page presets (A/B/C series and US sizes)
+- Portrait/landscape toggle
+- Auto-centered margins with manual overrides
+- Live grid count with visual preview
+- PDF export with trim marks
+
+## Usage
+1. Pick a preset or enter custom page size
+2. Enter label size and gaps
+3. Adjust margins (or use `Reset Margin` for auto-centering)
+4. Preview and download the PDF
+
+## Tech Stack
+- React + Vite
+- Tailwind CSS
+- `@react-pdf/renderer` and `pdf-lib` for PDF generation
+- `@embedpdf/snippet` for in-app preview
 
 ## License
 © 2026 Gerald. All rights reserved.

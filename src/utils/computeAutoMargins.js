@@ -1,5 +1,7 @@
 // /src/utils/computeAutoMargins.js
 
+import { getGridFit } from "./grid";
+
 export function computeAutoMargins(layout) {
   const {
     paperWidthPt,
@@ -10,22 +12,18 @@ export function computeAutoMargins(layout) {
     gapYPt,
   } = layout.values;
 
-  if (!paperWidthPt || !paperHeightPt || !couponWidthPt || !couponHeightPt) return;
+  if (!paperWidthPt || !paperHeightPt || !couponWidthPt || !couponHeightPt) {
+    return;
+  }
 
-  const gapX = gapXPt || 0;
-  const gapY = gapYPt || 0;
-
-  const cols = Math.floor(
-    (paperWidthPt + gapX) / (couponWidthPt + gapX)
-  );
-  const rows = Math.floor(
-    (paperHeightPt + gapY) / (couponHeightPt + gapY)
-  );
-
-  const usedW =
-    cols * couponWidthPt + Math.max(0, cols - 1) * gapX;
-  const usedH =
-    rows * couponHeightPt + Math.max(0, rows - 1) * gapY;
+  const { usedW, usedH } = getGridFit({
+    paperWidthPt,
+    paperHeightPt,
+    couponWidthPt,
+    couponHeightPt,
+    gapXPt,
+    gapYPt,
+  });
 
   let marginX = Math.max(0, (paperWidthPt - usedW) / 2);
   let marginY = Math.max(0, (paperHeightPt - usedH) / 2);

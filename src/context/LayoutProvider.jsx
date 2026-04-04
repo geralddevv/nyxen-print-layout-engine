@@ -1,5 +1,6 @@
 // src/context/LayoutProvider.jsx
 import { createContext, useContext, useState } from "react";
+import { MM_TO_PT } from "../utils/unitConversion";
 
 const LayoutContext = createContext();
 
@@ -29,8 +30,6 @@ export const LayoutProvider = ({ children }) => {
   const [bottomMargin, setBottomMargin] = useState(0);
 
   // Gaps
-  const MM_TO_PT = 2.834645669;
-
   const [gapXPt, setGapXPt] = useState(0 * MM_TO_PT);
   const [gapYPt, setGapYPt] = useState(0 * MM_TO_PT);
 
