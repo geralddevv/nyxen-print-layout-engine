@@ -104,7 +104,6 @@ export default function GeneratePDF({ resetSignal }) {
   const [isMobilePreview, setIsMobilePreview] = useState(false);
   const [pdfBlob, setPdfBlob] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [statusMsg, setStatusMsg] = useState("");
   const [error, setError] = useState("");
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [showToast, setShowToast] = useState(false);
@@ -158,7 +157,6 @@ export default function GeneratePDF({ resetSignal }) {
 
   useEffect(() => {
     setPdfBlob(null);
-    setStatusMsg("");
     setError("");
     if (window.location.hash === PREVIEW_HASH) {
       window.history.replaceState(
@@ -219,7 +217,6 @@ export default function GeneratePDF({ resetSignal }) {
 
     setIsGenerating(true);
     setError("");
-    setStatusMsg("");
 
     try {
       const doc = (
@@ -268,7 +265,6 @@ export default function GeneratePDF({ resetSignal }) {
       });
 
       setPdfBlob(new Blob([trimmed], { type: "application/pdf" }));
-      setStatusMsg(`${grid.count} labels on a single page.`);
       return true;
     } catch (err) {
       console.error(err);
@@ -317,10 +313,21 @@ export default function GeneratePDF({ resetSignal }) {
 
   useEffect(() => {
     if (!isPreviewOpen) return undefined;
-    const prev = document.body.style.overflow;
+    const prevBodyOverflow = document.body.style.overflow;
+    const prevHtmlOverflow = document.documentElement.style.overflow;
+    const prevBodyOverscroll = document.body.style.overscrollBehavior;
+    const prevHtmlOverscroll = document.documentElement.style.overscrollBehavior;
+
     document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overscrollBehavior = "none";
+    document.documentElement.style.overscrollBehavior = "none";
+
     return () => {
-      document.body.style.overflow = prev;
+      document.body.style.overflow = prevBodyOverflow;
+      document.documentElement.style.overflow = prevHtmlOverflow;
+      document.body.style.overscrollBehavior = prevBodyOverscroll;
+      document.documentElement.style.overscrollBehavior = prevHtmlOverscroll;
     };
   }, [isPreviewOpen]);
 
@@ -351,9 +358,9 @@ export default function GeneratePDF({ resetSignal }) {
         </button>
       </div>
 
-      {statusMsg && (
+      {grid.count > 0 && (
         <div className="w-full text-xs text-green-200 bg-nero-750 border border-nero-600 rounded-md px-3 py-2">
-          {statusMsg}
+          {`${grid.count} labels on a single page.`}
         </div>
       )}
 
@@ -372,7 +379,7 @@ export default function GeneratePDF({ resetSignal }) {
       <AnimatePresence>
         {isPreviewOpen && (
           <motion.div
-            className={`fixed inset-0 z-50 ${isMobilePreview ? "bg-nero-900" : "bg-nero-900/85"}`}
+            className={`fixed inset-0 z-50 h-[100dvh] overflow-hidden ${isMobilePreview ? "bg-nero-900" : "bg-nero-900/85"}`}
             onClick={isMobilePreview ? undefined : closePreview}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
