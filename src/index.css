@@ -7,30 +7,18 @@
 
 @theme {
   /* Light Mode (default) */
-  --color-bianco-900: #d9d9d9;
-  --color-bianco-800: #cdcdcd;
-  --color-bianco-750: #c2c2c2;
-  --color-bianco-700: #b6b6b6;
-  --color-bianco-600: #9a9a9a;
-  --color-bianco-450: #7c7c7c;
-  --color-bianco-400: #626262;
-  --color-bianco-300: #4a4a4a;
-  --color-bianco-100: #191919;
-  --color-bianco-50: #080808;
-
-  /* Active surface palette */
-  --color-nero-900: var(--color-bianco-900);
-  --color-nero-800: var(--color-bianco-800);
-  --color-nero-750: var(--color-bianco-750);
-  --color-nero-700: var(--color-bianco-700);
-  --color-nero-600: var(--color-bianco-600);
+  --color-nero-900: #eeeeee;
+  --color-nero-800: #e2e2e2;
+  --color-nero-750: #d7d7d7;
+  --color-nero-700: #cbcbcb;
+  --color-nero-600: #afafaf;
   --color-nero-500: #8b8b8b;
-  --color-nero-450: var(--color-bianco-450);
-  --color-nero-400: var(--color-bianco-400);
-  --color-nero-300: var(--color-bianco-300);
-  --color-nero-200: #303030;
-  --color-nero-100: var(--color-bianco-100);
-  --color-nero-50: var(--color-bianco-50);
+  --color-nero-450: #919191;
+  --color-nero-400: #6f6f6f;
+  --color-nero-300: #4a4a4a;
+  --color-nero-200: #3a3a3a;
+  --color-nero-100: #242424;
+  --color-nero-50: #0f0f0f;
 
   /* Accent */
   --color-accent-500: #1473e6;
