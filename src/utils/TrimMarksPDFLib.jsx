@@ -69,11 +69,14 @@ function addDynamicTrimMarks(
 
   if (cols <= 0 || rows <= 0) return;
 
-  const gridHeight =
-    rows * couponHeight + (rows - 1) * gapY;
+  const gridWidth = cols * couponWidth + Math.max(0, cols - 1) * gapX;
+  const gridHeight = rows * couponHeight + Math.max(0, rows - 1) * gapY;
 
-  const startX = leftMargin;
-  const startY = pageHeight - topMargin - gridHeight;
+  const extraX = Math.max(0, usableW - gridWidth) / 2;
+  const extraY = Math.max(0, usableH - gridHeight) / 2;
+
+  const startX = leftMargin + extraX;
+  const startY = pageHeight - topMargin - extraY - gridHeight;
 
   const endX =
     startX + cols * couponWidth + (cols - 1) * gapX;

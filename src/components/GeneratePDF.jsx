@@ -137,6 +137,13 @@ export default function GeneratePDF({ resetSignal }) {
     setError("");
 
     try {
+      const usedGridW = grid.columns * values.couponWidthPt + Math.max(0, grid.columns - 1) * grid.gapX;
+      const usedGridH = grid.rows * values.couponHeightPt + Math.max(0, grid.rows - 1) * grid.gapY;
+      const availableW = values.paperWidthPt - values.leftMargin - values.rightMargin;
+      const availableH = values.paperHeightPt - values.topMargin - values.bottomMargin;
+      const startX = values.leftMargin + Math.max(0, availableW - usedGridW) / 2;
+      const startY = values.topMargin + Math.max(0, availableH - usedGridH) / 2;
+
       const doc = (
         <Document>
           <Page
@@ -147,8 +154,8 @@ export default function GeneratePDF({ resetSignal }) {
               const row = Math.floor(idx / grid.columns);
               const col = idx % grid.columns;
 
-              const x = values.leftMargin + col * (values.couponWidthPt + grid.gapX);
-              const y = values.topMargin + row * (values.couponHeightPt + grid.gapY);
+              const x = startX + col * (values.couponWidthPt + grid.gapX);
+              const y = startY + row * (values.couponHeightPt + grid.gapY);
 
               return (
                 <View
