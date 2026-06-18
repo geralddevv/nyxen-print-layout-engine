@@ -190,20 +190,20 @@ function EmbedPDF({ pdfBlob, className = "" }, ref) {
 @media (max-width: 768px) {
   #document-content > .flex-1 {
     display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
+    align-items: safe center !important;
+    justify-content: safe center !important;
   }
 
   #document-content > .flex-1 > .relative.h-full.w-full {
     display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
+    align-items: safe center !important;
+    justify-content: safe center !important;
   }
 
   #document-content .bg-bg-app {
     display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
+    align-items: safe center !important;
+    justify-content: safe center !important;
   }
 }
       `.trim();
