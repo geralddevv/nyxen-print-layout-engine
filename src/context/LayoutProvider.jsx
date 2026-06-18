@@ -1,5 +1,5 @@
 // src/context/LayoutProvider.jsx
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useMemo, useState } from "react";
 import { MM_TO_PT } from "../utils/unitConversion";
 
 const LayoutContext = createContext();
@@ -38,27 +38,10 @@ export const LayoutProvider = ({ children }) => {
   // Tells SizeConfigPanel that a preset updated sizes
   const [presetUpdate, setPresetUpdate] = useState(false);
 
-  const layout = {
-    values: {
-      paperUnit,
-      couponUnit,
-      paperWidthPt,
-      paperHeightPt,
-      couponWidthPt,
-      couponHeightPt,
-      orientation,
-      fontScale,
-      rightMargin,
-      leftMargin,
-      topMargin,
-      bottomMargin,
-      userMarginOverride,
-      presetUpdate,
-      gapXPt,
-      gapYPt,
-    },
-
-    set: {
+  // useState setters are stable across renders, so the `set` object only needs
+  // to be created once.
+  const set = useMemo(
+    () => ({
       setPaperUnit,
       setCouponUnit,
       setPaperWidthPt,
@@ -75,8 +58,50 @@ export const LayoutProvider = ({ children }) => {
       setPresetUpdate,
       setGapXPt,
       setGapYPt,
-    },
-  };
+    }),
+    []
+  );
+
+  const values = useMemo(
+    () => ({
+      paperUnit,
+      couponUnit,
+      paperWidthPt,
+      paperHeightPt,
+      couponWidthPt,
+      couponHeightPt,
+      orientation,
+      fontScale,
+      rightMargin,
+      leftMargin,
+      topMargin,
+      bottomMargin,
+      userMarginOverride,
+      presetUpdate,
+      gapXPt,
+      gapYPt,
+    }),
+    [
+      paperUnit,
+      couponUnit,
+      paperWidthPt,
+      paperHeightPt,
+      couponWidthPt,
+      couponHeightPt,
+      orientation,
+      fontScale,
+      rightMargin,
+      leftMargin,
+      topMargin,
+      bottomMargin,
+      userMarginOverride,
+      presetUpdate,
+      gapXPt,
+      gapYPt,
+    ]
+  );
+
+  const layout = useMemo(() => ({ values, set }), [values, set]);
 
   return (
     <LayoutContext.Provider value={layout}>

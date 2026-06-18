@@ -6,6 +6,6 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   define: {
-    global: "globalThis", // ✅ Needed by ExcelJS
+    global: "globalThis", // Node-style `global` shim for browser-targeted PDF libs
   },
 });

@@ -1,64 +1,16 @@
 import { useLayout } from "../../context/LayoutProvider";
 import { useRefresh } from "../../context/RefreshContext";
-import { useEffect, useState } from "react";
 import PresetPortraitImg from "../../assets/preset-portrait-img.svg";
 import PresetLandscapeImg from "../../assets/preset-landscape-img.svg";
 import PresetPortraitImgDark from "../../assets/preset-portrait-img-dark.svg";
 import PresetLandscapeImgDark from "../../assets/preset-landscape-img-dark.svg";
 import { mmToPt } from "../../utils/unitConversion";
-
-const isDarkThemeActive = () => {
-  if (typeof window === "undefined") return false;
-
-  const root = document.documentElement;
-  const body = document.body;
-  const explicitTheme =
-    root.dataset.theme || body?.dataset.theme || "";
-
-  if (explicitTheme === "dark") return true;
-  if (explicitTheme === "light") return false;
-
-  if (root.classList.contains("dark") || body?.classList.contains("dark")) {
-    return true;
-  }
-
-  if (root.classList.contains("light") || body?.classList.contains("light")) {
-    return false;
-  }
-
-  return window.matchMedia("(prefers-color-scheme: dark)").matches;
-};
+import { useIsDarkTheme } from "../../utils/useIsDarkTheme";
 
 const PresetOption = ({ paperName, width, height, selected, onSelect }) => {
   const layout = useLayout();
   const { handleRefresh } = useRefresh();
-  const [isDarkTheme, setIsDarkTheme] = useState(isDarkThemeActive);
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-    const syncTheme = () => setIsDarkTheme(isDarkThemeActive());
-    const observer = new MutationObserver(syncTheme);
-
-    syncTheme();
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["class", "data-theme"],
-    });
-
-    if (document.body) {
-      observer.observe(document.body, {
-        attributes: true,
-        attributeFilter: ["class", "data-theme"],
-      });
-    }
-
-    mediaQuery.addEventListener("change", syncTheme);
-
-    return () => {
-      observer.disconnect();
-      mediaQuery.removeEventListener("change", syncTheme);
-    };
-  }, []);
+  const isDarkTheme = useIsDarkTheme();
 
   const applyPreset = () => {
     // UI knows preset is updating

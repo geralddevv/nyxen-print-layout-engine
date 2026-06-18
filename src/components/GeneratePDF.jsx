@@ -1,16 +1,16 @@
-import { useEffect, useMemo, useState } from "react";
-import { Document, Page, View, pdf } from "@react-pdf/renderer";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
-import EmbedPDF from "./EmbedPDF";
 import { useLayout } from "../context/LayoutProvider";
 import { computeAutoMargins } from "../utils/computeAutoMargins";
 import { buildGrid } from "../utils/grid";
 import { ptToIn, ptToMm } from "../utils/unitConversion";
-import TokenTemplate from "../utils/TokenTemplate";
-import { addTrimMarksToPDF } from "../utils/TrimMarksPDFLib";
 import Toast from "../utils/Toast";
+
+// The PDF viewer (and the @embedpdf/snippet bundle it pulls in) is only needed
+// once a preview is opened, so load it lazily to keep the initial bundle small.
+const EmbedPDF = lazy(() => import("./EmbedPDF"));
 
 const PREVIEW_HASH = "#pdf-preview";
 
@@ -27,7 +27,23 @@ export default function GeneratePDF({ resetSignal }) {
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
 
-  const grid = useMemo(() => buildGrid(values), [values]);
+  // Depend on the individual layout values rather than the `values` object,
+  // which is recreated on every render and would defeat memoization entirely.
+  const grid = useMemo(
+    () => buildGrid(values),
+    [
+      values.paperWidthPt,
+      values.paperHeightPt,
+      values.couponWidthPt,
+      values.couponHeightPt,
+      values.leftMargin,
+      values.rightMargin,
+      values.topMargin,
+      values.bottomMargin,
+      values.gapXPt,
+      values.gapYPt,
+    ]
+  );
 
   useEffect(() => {
     const mediaQuery =
@@ -137,6 +153,14 @@ export default function GeneratePDF({ resetSignal }) {
     setError("");
 
     try {
+      // Load the heavy PDF libraries on demand the first time a PDF is built.
+      const [{ Document, Page, View, pdf }, { default: TokenTemplate }, { addTrimMarksToPDF }] =
+        await Promise.all([
+          import("@react-pdf/renderer"),
+          import("../utils/TokenTemplate"),
+          import("../utils/TrimMarksPDFLib"),
+        ]);
+
       const usedGridW = grid.columns * values.couponWidthPt + Math.max(0, grid.columns - 1) * grid.gapX;
       const usedGridH = grid.rows * values.couponHeightPt + Math.max(0, grid.rows - 1) * grid.gapY;
       const availableW = values.paperWidthPt - values.leftMargin - values.rightMargin;
@@ -327,10 +351,18 @@ export default function GeneratePDF({ resetSignal }) {
               </div>
 
               <div className="flex-1 min-h-0 bg-nero-750">
-                <EmbedPDF
-                  pdfBlob={pdfBlob}
-                  className="h-full w-full border-0 rounded-none"
-                />
+                <Suspense
+                  fallback={
+                    <div className="h-full w-full flex items-center justify-center text-sm text-nero-300">
+                      Loading preview...
+                    </div>
+                  }
+                >
+                  <EmbedPDF
+                    pdfBlob={pdfBlob}
+                    className="h-full w-full border-0 rounded-none"
+                  />
+                </Suspense>
               </div>
             </motion.div>
           </motion.div>

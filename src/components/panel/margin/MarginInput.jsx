@@ -46,6 +46,7 @@ const MarginInput = ({ label }) => {
         <div className="h-8 w-6 bg-nero-750 border border-nero-600 border-r-0 flex flex-col rounded-bl-md rounded-tl-md overflow-hidden">
           <button
             type="button"
+            tabIndex={-1}
             onClick={increase}
             className="flex-1 flex items-center justify-center text-nero-400 hover:text-nero-300"
           >
@@ -53,6 +54,7 @@ const MarginInput = ({ label }) => {
           </button>
           <button
             type="button"
+            tabIndex={-1}
             onClick={decrease}
             className="flex-1 flex items-center justify-center text-nero-400 hover:text-nero-300"
           >
